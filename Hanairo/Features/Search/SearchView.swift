@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchView: View {
     @Environment(AuthenticationStore.self) private var authentication
+    @Environment(AppNavigationCoordinator.self) private var navigation
     @Environment(PixivRepository.self) private var repository
     @Environment(LocalBlockStore.self) private var localBlocks
     @State private var store: SearchStore
@@ -27,6 +28,9 @@ struct SearchView: View {
             placement: .navigationBarDrawer(displayMode: .always),
             prompt: "搜索作品、标签或用户"
         )
+        .onSubmit(of: .search) {
+            openDirectIDIfPossible()
+        }
         .searchScopes($store.scope) {
             ForEach(SearchScope.allCases) { scope in
                 Text(scope.title).tag(scope)
@@ -102,12 +106,45 @@ struct SearchView: View {
         if store.normalizedQuery.isEmpty {
             searchLanding
         } else {
+            if let directID {
+                directAccess(id: directID)
+            }
+
             switch store.scope {
             case .illustrations:
                 illustrationResults
             case .users:
                 userResults
             }
+        }
+    }
+
+    private func directAccess(id: Int) -> some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("检测到 ID \(id)，可跳过关键词搜索直接查看详情。")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 10) {
+                    NavigationLink(value: AppRoute.illustration(id: id)) {
+                        Label("打开作品", systemImage: "photo")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityHint("打开作品 ID \(id)")
+
+                    NavigationLink(value: AppRoute.user(id: id)) {
+                        Label("打开用户", systemImage: "person")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityHint("打开用户 ID \(id)")
+                }
+                .controlSize(.large)
+            }
+        } label: {
+            Label("ID 直达", systemImage: "arrow.right.circle.fill")
         }
     }
 
@@ -241,6 +278,11 @@ struct SearchView: View {
         "\(store.request.key)|\(authentication.userID ?? 0)"
     }
 
+    private var directID: Int? {
+        guard let id = Int(store.normalizedQuery), id > 0 else { return nil }
+        return id
+    }
+
     private var activeFilterSummary: String {
         var values = [store.options.target.title, store.options.sort.title]
         if store.options.mediaFilter != .all {
@@ -268,6 +310,16 @@ struct SearchView: View {
 
     private func loadMore() async {
         await store.loadMore(requestKey: requestKey, using: repository)
+    }
+
+    private func openDirectIDIfPossible() {
+        guard let directID else { return }
+        switch store.scope {
+        case .illustrations:
+            navigation.push(.illustration(id: directID))
+        case .users:
+            navigation.push(.user(id: directID))
+        }
     }
 }
 
