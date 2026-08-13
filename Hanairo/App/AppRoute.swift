@@ -11,6 +11,7 @@ enum AppRoute: Hashable {
     case user(id: Int, preview: PixivUser? = nil)
     case userConnections(userID: Int, kind: UserConnectionKind)
     case search(query: String)
+    case reverseImageSearch
     case settings
     case localDataSettings
     case about

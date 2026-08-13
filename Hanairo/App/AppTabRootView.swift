@@ -52,6 +52,8 @@ struct AppTabRootView: View {
             UserConnectionsView(userID: userID, kind: kind)
         case let .search(query):
             SearchView(initialQuery: query)
+        case .reverseImageSearch:
+            ReverseImageSearchView()
         case .settings:
             SettingsView()
         case .localDataSettings:
