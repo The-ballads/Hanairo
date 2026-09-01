@@ -22,7 +22,7 @@ struct AppRootView: View {
         .transition(.opacity)
         .animation(.easeOut(duration: 0.25), value: rootState)
         .tint(theme.accentColor)
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollEdgeEffectStyle(.hard, for: .top)
         .task(id: accountThemeImageURL) {
             await theme.updateAccountAccent(imageURL: accountThemeImageURL)
         }

@@ -16,30 +16,34 @@ struct RankingView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let usesExpandedFilters = prefersExpandedFilters
             let usesFourColumns = usesFourColumnLayout(for: geometry.size.width)
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 18) {
-                    if usesExpandedFilters {
-                        wideFilterPanel
-                    } else {
-                        compactFilters
-                    }
+                    modeDescription
 
                     content(columnCount: usesFourColumns ? 4 : nil)
                 }
                 .padding(.horizontal)
-                .padding(.top, 64)
+                .padding(.top, floatingTopPadding)
                 .padding(.bottom, 24)
             }
             .refreshable {
                 await refresh()
             }
             .overlay(alignment: .topLeading) {
-                floatingModeSelector
-                    .padding(.leading, 16)
-                    .padding(.top, 8)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        floatingModeSelector
+                        floatingDateToggle
+                    }
+
+                    if usesCustomDate {
+                        floatingDatePickerCard
+                    }
+                }
+                .padding(.leading, 16)
+                .padding(.top, 8)
             }
         }
         .navigationTitle("排行榜")
@@ -58,64 +62,10 @@ struct RankingView: View {
         }
     }
 
-    private var compactFilters: some View {
-        Group {
-            Text(mode.description)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            DisclosureGroup("指定日期", isExpanded: $usesCustomDate) {
-                DatePicker(
-                    "排行日期",
-                    selection: $selectedDate,
-                    in: ...Date(),
-                    displayedComponents: .date
-                )
-                .padding(.top, 8)
-            }
-        }
-    }
-
-    private var wideFilterPanel: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                Toggle(isOn: $usesCustomDate) {
-                    Label("指定日期", systemImage: "calendar")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .toggleStyle(.button)
-                .buttonStyle(.glass)
-
-                if usesCustomDate {
-                    DatePicker(
-                        "排行日期",
-                        selection: $selectedDate,
-                        in: ...Date(),
-                        displayedComponents: .date
-                    )
-                    .labelsHidden()
-                    .fixedSize()
-                }
-
-                Spacer(minLength: 0)
-
-                if mode.isMature {
-                    matureBadge
-                }
-            }
-
-            Divider()
-
-            Text(mode.description)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(.primary.opacity(0.06))
-        }
+    private var modeDescription: some View {
+        Text(mode.description)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
     }
 
     private var floatingModeSelector: some View {
@@ -152,6 +102,56 @@ struct RankingView: View {
                     .tag(mode)
             }
         }
+    }
+
+    private var floatingDateToggle: some View {
+        Button {
+            withAnimation(.snappy) {
+                usesCustomDate.toggle()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar")
+                    .frame(width: 20)
+
+                Text(usesCustomDate ? selectedDate.formatted(.dateTime.month().day()) : "指定日期")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 44)
+            .glassEffect(
+                usesCustomDate
+                    ? Glass.regular.tint(.accentColor).interactive()
+                    : Glass.regular.interactive(),
+                in: .rect(cornerRadius: 14)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var floatingDatePickerCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            DatePicker(
+                "排行日期",
+                selection: $selectedDate,
+                in: ...Date(),
+                displayedComponents: .date
+            )
+            .labelsHidden()
+
+            Button {
+                withAnimation(.snappy) {
+                    usesCustomDate = false
+                }
+            } label: {
+                Label("使用最新排行", systemImage: "arrow.counterclockwise")
+                    .font(.caption.weight(.medium))
+            }
+            .buttonStyle(.glass)
+        }
+        .padding(12)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
     }
 
     private var matureBadge: some View {
@@ -265,12 +265,8 @@ struct RankingView: View {
         }
     }
 
-    private var prefersExpandedFilters: Bool {
-#if os(iOS)
-        UIDevice.current.userInterfaceIdiom != .phone
-#else
-        true
-#endif
+    private var floatingTopPadding: CGFloat {
+        usesCustomDate ? 168 : 64
     }
 
     private func usesFourColumnLayout(for width: CGFloat) -> Bool {
