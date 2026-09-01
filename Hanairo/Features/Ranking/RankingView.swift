@@ -95,7 +95,7 @@ struct RankingView: View {
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 44)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+            .glassEffect(.regular.interactive(), in: .capsule)
         }
         .buttonStyle(.plain)
     }
@@ -120,7 +120,7 @@ struct RankingView: View {
         .datePickerStyle(.compact)
         .padding(.horizontal, 10)
         .frame(minHeight: 44)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+        .glassEffect(.regular.interactive(), in: .capsule)
         .accessibilityLabel("排行日期")
     }
 
@@ -129,15 +129,17 @@ struct RankingView: View {
             withAnimation(.snappy) {
                 selectedDate = Date()
             }
+            Task {
+                await feed.reload(requestKey: requestKey, showsInitialLoading: true) {
+                    try await repository.ranking(mode: mode.rawValue, date: effectiveDate)
+                }
+            }
         } label: {
             Image(systemName: "arrow.counterclockwise")
                 .font(.subheadline.weight(.semibold))
-                .frame(width: 20)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+                .frame(width: 44, height: 44)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
         .accessibilityLabel("使用最新排行")
     }
 
