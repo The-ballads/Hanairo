@@ -11,25 +11,46 @@ struct RankingView: View {
     @State private var mode: RankingMode = .daily
     @State private var selectedDate = Date()
     @State private var usesCustomDate = false
+    @State private var isDateCardExpanded = false
     @State private var feed = PaginatedStore<PixivIllustration>(id: { $0.id })
     @State private var actionError: String?
+
+    private let scrollTopID = "ranking-scroll-top"
 
     var body: some View {
         GeometryReader { geometry in
             let usesFourColumns = usesFourColumnLayout(for: geometry.size.width)
 
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 18) {
-                    modeDescription
+            ScrollViewReader { proxy in
+                ScrollView {
+                    Color.clear
+                        .frame(height: 1)
+                        .id(scrollTopID)
 
-                    content(columnCount: usesFourColumns ? 4 : nil)
+                    LazyVStack(alignment: .leading, spacing: 18) {
+                        modeDescription
+
+                        content(columnCount: usesFourColumns ? 4 : nil)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, floatingTopPadding)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal)
-                .padding(.top, floatingTopPadding)
-                .padding(.bottom, 24)
-            }
-            .refreshable {
-                await refresh()
+                .refreshable {
+                    await refresh()
+                }
+                .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.contentOffset.y + geometry.contentInsets.top
+                } action: { _, newOffset in
+                    if isDateCardExpanded, newOffset > 8 {
+                        withAnimation(.snappy) {
+                            isDateCardExpanded = false
+                        }
+                    }
+                }
+                .onChange(of: requestKey) { _, _ in
+                    proxy.scrollTo(scrollTopID, anchor: .top)
+                }
             }
             .overlay(alignment: .topLeading) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -38,7 +59,7 @@ struct RankingView: View {
                         floatingDateToggle
                     }
 
-                    if usesCustomDate {
+                    if isDateCardExpanded {
                         floatingDatePickerCard
                     }
                 }
@@ -107,7 +128,14 @@ struct RankingView: View {
     private var floatingDateToggle: some View {
         Button {
             withAnimation(.snappy) {
-                usesCustomDate.toggle()
+                if isDateCardExpanded {
+                    isDateCardExpanded = false
+                } else {
+                    isDateCardExpanded = true
+                    if !usesCustomDate {
+                        usesCustomDate = true
+                    }
+                }
             }
         } label: {
             HStack(spacing: 8) {
@@ -143,6 +171,7 @@ struct RankingView: View {
             Button {
                 withAnimation(.snappy) {
                     usesCustomDate = false
+                    isDateCardExpanded = false
                 }
             } label: {
                 Label("使用最新排行", systemImage: "arrow.counterclockwise")
@@ -266,7 +295,7 @@ struct RankingView: View {
     }
 
     private var floatingTopPadding: CGFloat {
-        usesCustomDate ? 168 : 64
+        isDateCardExpanded ? 168 : 64
     }
 
     private func usesFourColumnLayout(for width: CGFloat) -> Bool {
