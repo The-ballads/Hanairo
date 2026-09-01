@@ -15,6 +15,7 @@ struct AppRootView: View {
             case .requiresAuthentication:
                 NavigationStack {
                     LoginView()
+                        .toolbarBackground(.visible, for: .navigationBar)
                 }
             }
         }
