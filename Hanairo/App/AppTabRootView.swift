@@ -8,10 +8,10 @@ struct AppTabRootView: View {
     var body: some View {
         NavigationStack(path: pathBinding) {
             tab.rootView
-                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbarBackground(.bar, for: .navigationBar)
                 .navigationDestination(for: AppRoute.self) { route in
                     destination(for: route)
-                        .toolbarBackground(.visible, for: .navigationBar)
+                        .toolbarBackground(.bar, for: .navigationBar)
                         .appNavigationTransitionDestination(
                             for: route,
                             in: navigationTransitionNamespace
