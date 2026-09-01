@@ -84,7 +84,7 @@ struct RankingView: View {
                         .font(.subheadline.weight(.semibold))
                 }
                 .toggleStyle(.button)
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
 
                 if usesCustomDate {
                     DatePicker(
@@ -140,12 +140,7 @@ struct RankingView: View {
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 44)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(.primary.opacity(0.06))
-            }
-            .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
         }
         .buttonStyle(.plain)
     }
