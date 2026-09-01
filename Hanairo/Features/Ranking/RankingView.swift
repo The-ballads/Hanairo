@@ -10,7 +10,6 @@ struct RankingView: View {
 
     @State private var mode: RankingMode = .daily
     @State private var selectedDate = Date()
-    @State private var showsDatePicker = false
     @State private var feed = PaginatedStore<PixivIllustration>(id: { $0.id })
     @State private var actionError: String?
 
@@ -111,8 +110,23 @@ struct RankingView: View {
     }
 
     private var floatingDatePicker: some View {
-        Button {
-            showsDatePicker = true
+        Menu {
+            Section("选择日期") {
+                ForEach(recentDates, id: \.timeIntervalSinceReferenceDate) { date in
+                    Button {
+                        withAnimation(.snappy) {
+                            selectedDate = date
+                        }
+                    } label: {
+                        Label(
+                            dateLabel(for: date),
+                            systemImage: isSelectedDate(date)
+                                ? "checkmark"
+                                : "calendar"
+                        )
+                    }
+                }
+            }
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
@@ -128,19 +142,26 @@ struct RankingView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("排行日期")
-        .popover(isPresented: $showsDatePicker) {
-            DatePicker(
-                "排行日期",
-                selection: $selectedDate,
-                in: ...Date(),
-                displayedComponents: .date
-            )
-            .datePickerStyle(.graphical)
-            .padding()
-            .onChange(of: selectedDate) { _, _ in
-                showsDatePicker = false
-            }
+    }
+
+    private var recentDates: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (1...30).compactMap { offset in
+            calendar.date(byAdding: .day, value: -offset, to: today)
         }
+    }
+
+    private func dateLabel(for date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInYesterday(date) {
+            return "昨天"
+        }
+        return date.formatted(.dateTime.month().day())
+    }
+
+    private func isSelectedDate(_ date: Date) -> Bool {
+        Calendar.current.startOfDay(for: selectedDate) == date
     }
 
     private var floatingLatestButton: some View {
@@ -156,12 +177,9 @@ struct RankingView: View {
         } label: {
             Image(systemName: "arrow.counterclockwise")
                 .font(.subheadline.weight(.semibold))
-                .frame(width: 20)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .glassEffect(.regular.interactive(), in: .capsule)
+                .frame(width: 44, height: 44)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
         .accessibilityLabel("使用最新排行")
     }
 
