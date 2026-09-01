@@ -118,9 +118,6 @@ struct RankingView: View {
         )
         .labelsHidden()
         .datePickerStyle(.compact)
-        .padding(.horizontal, 10)
-        .frame(minHeight: 44)
-        .glassEffect(.regular.interactive(), in: .capsule)
         .accessibilityLabel("排行日期")
     }
 
@@ -137,9 +134,11 @@ struct RankingView: View {
         } label: {
             Image(systemName: "arrow.counterclockwise")
                 .font(.subheadline.weight(.semibold))
-                .frame(width: 44, height: 44)
+                .foregroundStyle(.tint)
+                .frame(width: 40, height: 34)
+                .background(.primary.opacity(0.06), in: Capsule())
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
         .accessibilityLabel("使用最新排行")
     }
 
