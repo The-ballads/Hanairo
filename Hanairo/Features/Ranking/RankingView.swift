@@ -10,6 +10,7 @@ struct RankingView: View {
 
     @State private var mode: RankingMode = .daily
     @State private var selectedDate = Date()
+    @State private var floatingAreaHeight: CGFloat = 52
     @State private var feed = PaginatedStore<PixivIllustration>(id: { $0.id })
     @State private var actionError: String?
 
@@ -31,7 +32,7 @@ struct RankingView: View {
                         content(columnCount: usesFourColumns ? 4 : nil)
                     }
                     .padding(.horizontal)
-                    .padding(.top, 64)
+                    .padding(.top, floatingAreaHeight + 12)
                     .padding(.bottom, 24)
                 }
                 .refreshable {
@@ -42,12 +43,31 @@ struct RankingView: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                HStack(spacing: 6) {
-                    floatingModeSelector
-                    floatingDatePicker
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 6) {
+                        floatingModeSelector
+                        floatingDatePicker
+                    }
+                    .padding(.leading, 16)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        floatingModeSelector
+                        floatingDatePicker
+                    }
+                    .padding(.leading, 16)
                 }
-                .padding(.leading, 16)
                 .padding(.top, 8)
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear
+                            .onAppear {
+                                floatingAreaHeight = geometry.size.height
+                            }
+                            .onChange(of: geometry.size.height) { _, newHeight in
+                                floatingAreaHeight = newHeight
+                            }
+                    }
+                )
             }
         }
         .navigationTitle("排行榜")
@@ -83,8 +103,6 @@ struct RankingView: View {
                 Text(mode.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
 
                 if mode.isMature {
                     matureBadge
@@ -167,17 +185,16 @@ struct RankingView: View {
     }
 
     private func dateMenuLabel(_ text: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             Text(text)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
-                .lineLimit(1)
 
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 12)
         .frame(minHeight: 44)
         .glassEffect(.regular.interactive(), in: .capsule)
     }
