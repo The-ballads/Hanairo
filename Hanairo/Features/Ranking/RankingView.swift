@@ -10,8 +10,6 @@ struct RankingView: View {
 
     @State private var mode: RankingMode = .daily
     @State private var selectedDate = Date()
-    @State private var usesCustomDate = false
-    @State private var isDateCardExpanded = false
     @State private var feed = PaginatedStore<PixivIllustration>(id: { $0.id })
     @State private var actionError: String?
 
@@ -33,35 +31,21 @@ struct RankingView: View {
                         content(columnCount: usesFourColumns ? 4 : nil)
                     }
                     .padding(.horizontal)
-                    .padding(.top, floatingTopPadding)
+                    .padding(.top, 64)
                     .padding(.bottom, 24)
                 }
                 .refreshable {
                     await refresh()
-                }
-                .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.contentOffset.y + geometry.contentInsets.top
-                } action: { _, newOffset in
-                    if isDateCardExpanded, newOffset > 8 {
-                        withAnimation(.snappy) {
-                            isDateCardExpanded = false
-                        }
-                    }
                 }
                 .onChange(of: requestKey) { _, _ in
                     proxy.scrollTo(scrollTopID, anchor: .top)
                 }
             }
             .overlay(alignment: .topLeading) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        floatingModeSelector
-                        floatingDateToggle
-                    }
-
-                    if isDateCardExpanded {
-                        floatingDatePickerCard
-                    }
+                HStack(spacing: 8) {
+                    floatingModeSelector
+                    floatingDatePicker
+                    floatingLatestButton
                 }
                 .padding(.leading, 16)
                 .padding(.top, 8)
@@ -125,62 +109,36 @@ struct RankingView: View {
         }
     }
 
-    private var floatingDateToggle: some View {
-        Button {
-            withAnimation(.snappy) {
-                if isDateCardExpanded {
-                    isDateCardExpanded = false
-                } else {
-                    isDateCardExpanded = true
-                    if !usesCustomDate {
-                        usesCustomDate = true
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "calendar")
-                    .frame(width: 20)
-
-                Text(usesCustomDate ? selectedDate.formatted(.dateTime.month().day()) : "指定日期")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-            }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 44)
-            .glassEffect(
-                usesCustomDate
-                    ? Glass.regular.tint(.accentColor).interactive()
-                    : Glass.regular.interactive(),
-                in: .rect(cornerRadius: 14)
-            )
-        }
-        .buttonStyle(.plain)
+    private var floatingDatePicker: some View {
+        DatePicker(
+            "排行日期",
+            selection: $selectedDate,
+            in: ...Date(),
+            displayedComponents: .date
+        )
+        .labelsHidden()
+        .datePickerStyle(.compact)
+        .padding(.horizontal, 10)
+        .frame(minHeight: 44)
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+        .accessibilityLabel("排行日期")
     }
 
-    private var floatingDatePickerCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            DatePicker(
-                "排行日期",
-                selection: $selectedDate,
-                in: ...Date(),
-                displayedComponents: .date
-            )
-            .labelsHidden()
-
-            Button {
-                withAnimation(.snappy) {
-                    usesCustomDate = false
-                    isDateCardExpanded = false
-                }
-            } label: {
-                Label("使用最新排行", systemImage: "arrow.counterclockwise")
-                    .font(.caption.weight(.medium))
+    private var floatingLatestButton: some View {
+        Button {
+            withAnimation(.snappy) {
+                selectedDate = Date()
             }
-            .buttonStyle(.glass)
+        } label: {
+            Image(systemName: "arrow.counterclockwise")
+                .font(.subheadline.weight(.semibold))
+                .frame(width: 20)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
         }
-        .padding(12)
-        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+        .buttonStyle(.plain)
+        .accessibilityLabel("使用最新排行")
     }
 
     private var matureBadge: some View {
@@ -224,8 +182,12 @@ struct RankingView: View {
         }
     }
 
+    private var effectiveDate: Date? {
+        Calendar.current.isDateInToday(selectedDate) ? nil : selectedDate
+    }
+
     private var requestKey: String {
-        "\(mode.rawValue)-\(usesCustomDate)-\(selectedDate.timeIntervalSinceReferenceDate)-\(authentication.userID ?? 0)"
+        "\(mode.rawValue)-\(selectedDate.timeIntervalSinceReferenceDate)-\(authentication.userID ?? 0)"
     }
 
     private var availableModes: [RankingMode] {
@@ -251,7 +213,7 @@ struct RankingView: View {
     private func loadIfNeeded() async {
         let activeRequestKey = requestKey
         let activeMode = mode.rawValue
-        let activeDate = usesCustomDate ? selectedDate : nil
+        let activeDate = effectiveDate
         await feed.loadIfNeeded(requestKey: activeRequestKey) {
             try await repository.ranking(mode: activeMode, date: activeDate)
         }
@@ -260,7 +222,7 @@ struct RankingView: View {
     private func refresh() async {
         let activeRequestKey = requestKey
         let activeMode = mode.rawValue
-        let activeDate = usesCustomDate ? selectedDate : nil
+        let activeDate = effectiveDate
         await feed.reload(requestKey: activeRequestKey, showsInitialLoading: false) {
             try await repository.ranking(mode: activeMode, date: activeDate)
         }
@@ -269,7 +231,7 @@ struct RankingView: View {
     private func retry() async {
         let activeRequestKey = requestKey
         let activeMode = mode.rawValue
-        let activeDate = usesCustomDate ? selectedDate : nil
+        let activeDate = effectiveDate
         await feed.reload(requestKey: activeRequestKey, showsInitialLoading: true) {
             try await repository.ranking(mode: activeMode, date: activeDate)
         }
@@ -292,10 +254,6 @@ struct RankingView: View {
         } catch {
             actionError = error.localizedDescription
         }
-    }
-
-    private var floatingTopPadding: CGFloat {
-        isDateCardExpanded ? 168 : 64
     }
 
     private func usesFourColumnLayout(for width: CGFloat) -> Bool {
