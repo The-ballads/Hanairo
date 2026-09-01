@@ -246,22 +246,29 @@ struct RankingView: View {
     }
 
     private var floatingLatestButton: some View {
-        Button {
-            withAnimation(.snappy) {
-                selectedDate = Date()
-            }
-            Task {
-                await feed.reload(requestKey: requestKey, showsInitialLoading: true) {
-                    try await repository.ranking(mode: mode.rawValue, date: effectiveDate)
-                }
-            }
-        } label: {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.subheadline.weight(.semibold))
+        ZStack {
+            Circle()
+                .fill(.clear)
                 .frame(width: 44, height: 44)
                 .glassEffect(.regular, in: .circle)
+
+            Button {
+                withAnimation(.snappy) {
+                    selectedDate = Date()
+                }
+                Task {
+                    await feed.reload(requestKey: requestKey, showsInitialLoading: true) {
+                        try await repository.ranking(mode: mode.rawValue, date: effectiveDate)
+                    }
+                }
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .accessibilityLabel("使用最新排行")
     }
 
