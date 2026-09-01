@@ -10,6 +10,7 @@ struct RankingView: View {
 
     @State private var mode: RankingMode = .daily
     @State private var selectedDate = Date()
+    @State private var showsDatePicker = false
     @State private var feed = PaginatedStore<PixivIllustration>(id: { $0.id })
     @State private var actionError: String?
 
@@ -110,15 +111,36 @@ struct RankingView: View {
     }
 
     private var floatingDatePicker: some View {
-        DatePicker(
-            "排行日期",
-            selection: $selectedDate,
-            in: ...Date(),
-            displayedComponents: .date
-        )
-        .labelsHidden()
-        .datePickerStyle(.compact)
+        Button {
+            showsDatePicker = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar")
+                    .frame(width: 20)
+
+                Text(selectedDate.formatted(.dateTime.month().day()))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 44)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .buttonStyle(.plain)
         .accessibilityLabel("排行日期")
+        .popover(isPresented: $showsDatePicker) {
+            DatePicker(
+                "排行日期",
+                selection: $selectedDate,
+                in: ...Date(),
+                displayedComponents: .date
+            )
+            .datePickerStyle(.graphical)
+            .padding()
+            .onChange(of: selectedDate) { _, _ in
+                showsDatePicker = false
+            }
+        }
     }
 
     private var floatingLatestButton: some View {
@@ -134,9 +156,10 @@ struct RankingView: View {
         } label: {
             Image(systemName: "arrow.counterclockwise")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 40, height: 34)
-                .background(.primary.opacity(0.06), in: Capsule())
+                .frame(width: 20)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .glassEffect(.regular.interactive(), in: .capsule)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("使用最新排行")
