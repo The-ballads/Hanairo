@@ -10,6 +10,7 @@ struct RankingView: View {
 
     @State private var mode: RankingMode = .daily
     @State private var selectedDate = Date()
+    @State private var isRefreshPressed = false
     @State private var feed = PaginatedStore<PixivIllustration>(id: { $0.id })
     @State private var actionError: String?
 
@@ -267,8 +268,16 @@ struct RankingView: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
             }
-            .buttonStyle(PressFeedbackButtonStyle())
+            .buttonStyle(.plain)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in isRefreshPressed = true }
+                    .onEnded { _ in isRefreshPressed = false }
+            )
         }
+        .scaleEffect(isRefreshPressed ? 0.9 : 1)
+        .opacity(isRefreshPressed ? 0.75 : 1)
+        .animation(.snappy(duration: 0.18), value: isRefreshPressed)
         .accessibilityLabel("使用最新排行")
     }
 
@@ -461,15 +470,6 @@ private enum RankingMode: String, CaseIterable, Identifiable {
         case .matureAI, .matureDaily, .matureWeekly, .matureG: true
         default: false
         }
-    }
-}
-
-private struct PressFeedbackButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.85 : 1)
-            .opacity(configuration.isPressed ? 0.65 : 1)
-            .animation(.snappy(duration: 0.18), value: configuration.isPressed)
     }
 }
 
