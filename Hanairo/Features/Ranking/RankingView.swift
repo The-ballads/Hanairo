@@ -267,7 +267,7 @@ struct RankingView: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressFeedbackButtonStyle())
         }
         .accessibilityLabel("使用最新排行")
     }
@@ -461,6 +461,15 @@ private enum RankingMode: String, CaseIterable, Identifiable {
         case .matureAI, .matureDaily, .matureWeekly, .matureG: true
         default: false
         }
+    }
+}
+
+private struct PressFeedbackButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.85 : 1)
+            .opacity(configuration.isPressed ? 0.65 : 1)
+            .animation(.snappy(duration: 0.18), value: configuration.isPressed)
     }
 }
 
