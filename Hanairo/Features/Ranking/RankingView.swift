@@ -10,7 +10,6 @@ struct RankingView: View {
 
     @State private var mode: RankingMode = .daily
     @State private var selectedDate = Date()
-    @State private var isRefreshPressed = false
     @State private var feed = PaginatedStore<PixivIllustration>(id: { $0.id })
     @State private var actionError: String?
 
@@ -32,7 +31,7 @@ struct RankingView: View {
                         content(columnCount: usesFourColumns ? 4 : nil)
                     }
                     .padding(.horizontal)
-                    .padding(.top, 112)
+                    .padding(.top, 64)
                     .padding(.bottom, 24)
                 }
                 .refreshable {
@@ -43,12 +42,8 @@ struct RankingView: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        floatingModeSelector
-                        floatingLatestButton
-                    }
-
+                HStack(spacing: 6) {
+                    floatingModeSelector
                     floatingDatePicker
                 }
                 .padding(.leading, 16)
@@ -88,6 +83,8 @@ struct RankingView: View {
                 Text(mode.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
                 if mode.isMature {
                     matureBadge
@@ -170,16 +167,17 @@ struct RankingView: View {
     }
 
     private func dateMenuLabel(_ text: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             Text(text)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
+                .lineLimit(1)
 
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 8)
         .frame(minHeight: 44)
         .glassEffect(.regular.interactive(), in: .capsule)
     }
@@ -244,41 +242,6 @@ struct RankingView: View {
         withAnimation(.snappy) {
             selectedDate = min(date, Date())
         }
-    }
-
-    private var floatingLatestButton: some View {
-        ZStack {
-            Circle()
-                .fill(.clear)
-                .frame(width: 44, height: 44)
-                .glassEffect(.regular, in: .circle)
-
-            Button {
-                withAnimation(.snappy) {
-                    selectedDate = Date()
-                }
-                Task {
-                    await feed.reload(requestKey: requestKey, showsInitialLoading: true) {
-                        try await repository.ranking(mode: mode.rawValue, date: effectiveDate)
-                    }
-                }
-            } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in isRefreshPressed = true }
-                    .onEnded { _ in isRefreshPressed = false }
-            )
-        }
-        .scaleEffect(isRefreshPressed ? 0.9 : 1)
-        .opacity(isRefreshPressed ? 0.75 : 1)
-        .animation(.snappy(duration: 0.18), value: isRefreshPressed)
-        .accessibilityLabel("使用最新排行")
     }
 
     private var matureBadge: some View {
