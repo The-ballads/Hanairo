@@ -31,7 +31,7 @@ struct RankingView: View {
                         content(columnCount: usesFourColumns ? 4 : nil)
                     }
                     .padding(.horizontal)
-                    .padding(.top, 64)
+                    .padding(.top, 112)
                     .padding(.bottom, 24)
                 }
                 .refreshable {
@@ -42,10 +42,13 @@ struct RankingView: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                HStack(spacing: 8) {
-                    floatingModeSelector
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        floatingModeSelector
+                        floatingLatestButton
+                    }
+
                     floatingDatePicker
-                    floatingLatestButton
                 }
                 .padding(.leading, 16)
                 .padding(.top, 8)
@@ -110,58 +113,136 @@ struct RankingView: View {
     }
 
     private var floatingDatePicker: some View {
+        HStack(spacing: 6) {
+            yearMenu
+            monthMenu
+            dayMenu
+        }
+    }
+
+    private var yearMenu: some View {
         Menu {
-            Section("选择日期") {
-                ForEach(recentDates, id: \.timeIntervalSinceReferenceDate) { date in
-                    Button {
-                        withAnimation(.snappy) {
-                            selectedDate = date
-                        }
-                    } label: {
-                        Label(
-                            dateLabel(for: date),
-                            systemImage: isSelectedDate(date)
-                                ? "checkmark"
-                                : "calendar"
-                        )
-                    }
+            ForEach(availableYears, id: \.self) { year in
+                Button {
+                    updateSelectedDate(year: year)
+                } label: {
+                    Label("\(year)年", systemImage: year == selectedYear ? "checkmark" : "calendar")
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "calendar")
-                    .frame(width: 20)
-
-                Text(selectedDate.formatted(.dateTime.month().day()))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-            }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 44)
-            .glassEffect(.regular.interactive(), in: .capsule)
+            dateMenuLabel("\(selectedYear)年")
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("排行日期")
+        .accessibilityLabel("选择年份")
     }
 
-    private var recentDates: [Date] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        return (1...30).compactMap { offset in
-            calendar.date(byAdding: .day, value: -offset, to: today)
+    private var monthMenu: some View {
+        Menu {
+            ForEach(availableMonths, id: \.self) { month in
+                Button {
+                    updateSelectedDate(month: month)
+                } label: {
+                    Label("\(month)月", systemImage: month == selectedMonth ? "checkmark" : "calendar")
+                }
+            }
+        } label: {
+            dateMenuLabel("\(selectedMonth)月")
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("选择月份")
     }
 
-    private func dateLabel(for date: Date) -> String {
-        let calendar = Calendar.current
-        if calendar.isDateInYesterday(date) {
-            return "昨天"
+    private var dayMenu: some View {
+        Menu {
+            ForEach(availableDays, id: \.self) { day in
+                Button {
+                    updateSelectedDate(day: day)
+                } label: {
+                    Label("\(day)日", systemImage: day == selectedDay ? "checkmark" : "calendar")
+                }
+            }
+        } label: {
+            dateMenuLabel("\(selectedDay)日")
         }
-        return date.formatted(.dateTime.month().day())
+        .buttonStyle(.plain)
+        .accessibilityLabel("选择日期")
     }
 
-    private func isSelectedDate(_ date: Date) -> Bool {
-        Calendar.current.startOfDay(for: selectedDate) == date
+    private func dateMenuLabel(_ text: String) -> some View {
+        HStack(spacing: 6) {
+            Text(text)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 44)
+        .glassEffect(.regular.interactive(), in: .capsule)
+    }
+
+    private var selectedYear: Int {
+        Calendar.current.component(.year, from: selectedDate)
+    }
+
+    private var selectedMonth: Int {
+        Calendar.current.component(.month, from: selectedDate)
+    }
+
+    private var selectedDay: Int {
+        Calendar.current.component(.day, from: selectedDate)
+    }
+
+    private var availableYears: [Int] {
+        let calendar = Calendar.current
+        let currentYear = calendar.component(.year, from: Date())
+        return Array((currentYear - 19)...currentYear).reversed()
+    }
+
+    private var availableMonths: [Int] {
+        let calendar = Calendar.current
+        if selectedYear == calendar.component(.year, from: Date()) {
+            return Array(1...calendar.component(.month, from: Date()))
+        }
+        return Array(1...12)
+    }
+
+    private var availableDays: [Int] {
+        let calendar = Calendar.current
+        let maxDay = daysInMonth(year: selectedYear, month: selectedMonth)
+        if
+            selectedYear == calendar.component(.year, from: Date()),
+            selectedMonth == calendar.component(.month, from: Date())
+        {
+            return Array(1...min(maxDay, calendar.component(.day, from: Date())))
+        }
+        return Array(1...maxDay)
+    }
+
+    private func daysInMonth(year: Int, month: Int) -> Int {
+        let calendar = Calendar.current
+        let components = DateComponents(year: year, month: month, day: 1)
+        guard let date = calendar.date(from: components) else { return 30 }
+        return calendar.range(of: .day, in: .month, for: date)?.count ?? 30
+    }
+
+    private func updateSelectedDate(
+        year: Int? = nil,
+        month: Int? = nil,
+        day: Int? = nil
+    ) {
+        let calendar = Calendar.current
+        let newYear = year ?? selectedYear
+        let newMonth = month ?? selectedMonth
+        let maxDay = daysInMonth(year: newYear, month: newMonth)
+        let newDay = min(day ?? selectedDay, maxDay)
+        let components = DateComponents(year: newYear, month: newMonth, day: newDay)
+        guard let date = calendar.date(from: components) else { return }
+        withAnimation(.snappy) {
+            selectedDate = min(date, Date())
+        }
     }
 
     private var floatingLatestButton: some View {
@@ -178,8 +259,9 @@ struct RankingView: View {
             Image(systemName: "arrow.counterclockwise")
                 .font(.subheadline.weight(.semibold))
                 .frame(width: 44, height: 44)
+                .glassEffect(.regular, in: .circle)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
         .accessibilityLabel("使用最新排行")
     }
 
