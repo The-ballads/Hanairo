@@ -203,9 +203,9 @@ struct RankingView: View {
     private var availableMonths: [Int] {
         let calendar = Calendar.current
         if selectedYear == calendar.component(.year, from: Date()) {
-            return Array(1...calendar.component(.month, from: Date()))
+            return Array((1...calendar.component(.month, from: Date())).reversed())
         }
-        return Array(1...12)
+        return Array((1...12).reversed())
     }
 
     private var availableDays: [Int] {
@@ -215,9 +215,9 @@ struct RankingView: View {
             selectedYear == calendar.component(.year, from: Date()),
             selectedMonth == calendar.component(.month, from: Date())
         {
-            return Array(1...min(maxDay, calendar.component(.day, from: Date())))
+            return Array((1...min(maxDay, calendar.component(.day, from: Date()))).reversed())
         }
-        return Array(1...maxDay)
+        return Array((1...maxDay).reversed())
     }
 
     private func daysInMonth(year: Int, month: Int) -> Int {
