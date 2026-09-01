@@ -30,10 +30,16 @@ struct RankingView: View {
                     content(columnCount: usesFourColumns ? 4 : nil)
                 }
                 .padding(.horizontal)
+                .padding(.top, 64)
                 .padding(.bottom, 24)
             }
             .refreshable {
                 await refresh()
+            }
+            .overlay(alignment: .topLeading) {
+                floatingModeSelector
+                    .padding(.leading, 16)
+                    .padding(.top, 8)
             }
         }
         .navigationTitle("排行榜")
@@ -54,22 +60,6 @@ struct RankingView: View {
 
     private var compactFilters: some View {
         Group {
-            HStack(spacing: 12) {
-                Menu {
-                    rankingModePicker
-                } label: {
-                    Label(mode.title, systemImage: mode.systemImage)
-                        .font(.headline)
-                }
-                .buttonStyle(.bordered)
-
-                Spacer()
-
-                if mode.isMature {
-                    matureBadge
-                }
-            }
-
             Text(mode.description)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -89,35 +79,6 @@ struct RankingView: View {
     private var wideFilterPanel: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
-                Menu {
-                    rankingModePicker
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: mode.systemImage)
-                            .frame(width: 20)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("排行类型")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(mode.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
-                        }
-
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 14)
-                    .frame(minHeight: 48)
-                    .background(
-                        .background.opacity(0.72),
-                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    )
-                }
-                .buttonStyle(.plain)
-
                 Toggle(isOn: $usesCustomDate) {
                     Label("指定日期", systemImage: "calendar")
                         .font(.subheadline.weight(.semibold))
@@ -155,6 +116,38 @@ struct RankingView: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(.primary.opacity(0.06))
         }
+    }
+
+    private var floatingModeSelector: some View {
+        Menu {
+            rankingModePicker
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: mode.systemImage)
+                    .frame(width: 20)
+
+                Text(mode.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                if mode.isMature {
+                    matureBadge
+                }
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 44)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(.primary.opacity(0.06))
+            }
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+        }
+        .buttonStyle(.plain)
     }
 
     private var rankingModePicker: some View {
